@@ -1,0 +1,8 @@
+[Widget]
+Id=spreadsheet.pinned-cell
+ProviderId=dev.sinty.spreadsheet
+Name=Pinned Cell
+IconName=dev.sinty.spreadsheet
+Sizes=2x1;2x2
+Module=libsingularity-spreadsheet-widget.so
+ModuleSymbol=singularity_spreadsheet_widget_new

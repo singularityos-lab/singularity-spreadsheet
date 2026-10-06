@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schemalist>
+  <schema id="dev.sinty.spreadsheet" path="/dev/sinty/spreadsheet/">
+    <key name="custom-lists" type="s">
+      <default>''</default>
+      <summary>Custom lists</summary>
+      <description>Your own lists for filling series and sorting. Separate the items of a list with commas and the lists with semicolons, for example: North, East, South, West; Low, Medium, High.</description>
+    </key>
+    <key name="author-name" type="s">
+      <default>''</default>
+      <summary>Name used for comments, tracked changes and live sessions</summary>
+    </key>
+  </schema>
+</schemalist>

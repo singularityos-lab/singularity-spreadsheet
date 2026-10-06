@@ -1,0 +1,19 @@
+{
+    "schema-id": "dev.sinty.spreadsheet",
+    "settings": [
+        {
+            "key": "author-name",
+            "label": "Author Name",
+            "subtitle": "Shown on comments, tracked changes and to people editing with you",
+            "type": "string",
+            "widget": "entry"
+        },
+        {
+            "key": "custom-lists",
+            "label": "Custom Lists",
+            "subtitle": "Items separated by commas, lists by semicolons, used by the fill handle and by sorting",
+            "type": "string",
+            "widget": "entry"
+        }
+    ]
+}

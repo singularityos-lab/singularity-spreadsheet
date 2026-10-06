@@ -1,0 +1,17 @@
+[Desktop Entry]
+Name=Spreadsheet
+Comment=Work with numbers, formulas and charts
+Exec=singularity-spreadsheet %U
+Icon=dev.sinty.spreadsheet
+Terminal=false
+Type=Application
+Categories=Office;Spreadsheet;
+MimeType=application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;application/vnd.ms-excel.sheet.macroEnabled.12;application/vnd.openxmlformats-officedocument.spreadsheetml.template;application/vnd.ms-excel.template.macroEnabled.12;application/vnd.ms-excel;application/vnd.ms-excel.sheet.binary.macroEnabled.12;application/vnd.oasis.opendocument.spreadsheet;application/vnd.oasis.opendocument.spreadsheet-template;application/vnd.oasis.opendocument.spreadsheet-flat-xml;text/csv;text/tab-separated-values;
+Keywords=spreadsheet;excel;calc;table;xlsx;ods;csv;formula;chart;
+StartupWMClass=dev.sinty.spreadsheet
+X-Singularity-Dock-Recent=true
+Actions=new-spreadsheet;
+
+[Desktop Action new-spreadsheet]
+Name=New Spreadsheet
+Exec=singularity-spreadsheet --new
