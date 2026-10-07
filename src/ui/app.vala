@@ -208,6 +208,20 @@ namespace Singularity.Apps.Spreadsheet {
             return get_is_remote () ? 0 : -1;
         }
 
+        private uint chart_bus_id = 0;
+
+        public override bool dbus_register (DBusConnection connection, string object_path) throws Error {
+            if (!base.dbus_register (connection, object_path)) return false;
+            chart_bus_id = connection.register_object ("/dev/sinty/spreadsheet/Charts", new ChartBus (this));
+            return true;
+        }
+
+        public override void dbus_unregister (DBusConnection connection, string object_path) {
+            if (chart_bus_id != 0) connection.unregister_object (chart_bus_id);
+            chart_bus_id = 0;
+            base.dbus_unregister (connection, object_path);
+        }
+
         protected override void startup () {
             base.startup ();
             IconTheme.get_for_display (Gdk.Display.get_default ()).add_resource_path ("/dev/sinty/spreadsheet/icons");

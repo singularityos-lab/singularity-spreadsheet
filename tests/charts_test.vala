@@ -157,6 +157,34 @@ void test_xlsx_roundtrip () {
     FileUtils.remove (p);
 }
 
+void test_linked_chart () {
+    LocaleInfo.set_c ();
+    var book = sample (tiny_png ());
+    string p = tmp_path ("link.xlsx");
+    try {
+        XlsxWriter.save (book, p);
+        string before = ChartLookup.xml_for (p, "Data Sheet", "#0");
+        if (!before.contains ("100") || before.contains ("987")) fail ("linked chart initial values");
+        book.sheets[0].set_input (1, 1, "987");
+        XlsxWriter.save (book, p);
+        string after = ChartLookup.xml_for (p, "Data Sheet", "#0");
+        if (!after.contains ("987")) fail ("linked chart did not pick up the new value");
+        try {
+            ChartLookup.xml_for (p, "Missing", "#0");
+            fail ("linked chart missing sheet");
+        } catch (Error e) {
+        }
+        try {
+            ChartLookup.xml_for (p, "Data Sheet", "#9");
+            fail ("linked chart missing chart");
+        } catch (Error e) {
+        }
+    } catch (Error e) {
+        fail ("linked chart " + e.message);
+    }
+    FileUtils.remove (p);
+}
+
 void test_ods_roundtrip () {
     LocaleInfo.set_c ();
     var png = tiny_png ();
@@ -818,6 +846,7 @@ int main (string[] args) {
     Test.add_func ("/charts/types", test_drawingml_types);
     Test.add_func ("/charts/xlsx", test_xlsx_roundtrip);
     Test.add_func ("/charts/ods", test_ods_roundtrip);
+    Test.add_func ("/charts/linked", test_linked_chart);
     Test.add_func ("/charts/fixtures", test_fixtures);
     Test.add_func ("/charts/image-function", test_image_function);
     Test.add_func ("/charts/alt-diagrams", test_alt_and_diagrams);

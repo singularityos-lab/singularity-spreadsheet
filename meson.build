@@ -25,6 +25,7 @@ engine = files(
   'src/engine/workbook.vala',
   'src/engine/chart_model.vala',
   'src/engine/chart_resolve.vala',
+  'src/engine/chart_lookup.vala',
   'src/engine/diagrams.vala',
   'src/engine/functions_image.vala',
   'src/engine/lambda.vala',
@@ -168,6 +169,7 @@ ui = files(
   'src/ui/cond_rules.vala',
   'src/ui/templates_more.vala',
   'src/ui/app.vala',
+  'src/ui/chart_link.vala',
   'src/ui/cloud_actions.vala',
   'src/ui/comments_ui.vala',
   'src/ui/review_ui.vala',
@@ -235,4 +237,14 @@ endforeach
 
 install_data('data/data-types.conf',
   install_dir: get_option('sysconfdir') / 'singularity' / 'spreadsheet'
+)
+
+spreadsheet_service_conf = configuration_data()
+spreadsheet_service_conf.set('bindir', get_option('prefix') / get_option('bindir'))
+configure_file(
+  input: 'data/dev.sinty.spreadsheet.service.in',
+  output: 'dev.sinty.spreadsheet.service',
+  configuration: spreadsheet_service_conf,
+  install: true,
+  install_dir: get_option('datadir') / 'dbus-1' / 'services'
 )

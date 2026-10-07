@@ -1061,6 +1061,14 @@ namespace Singularity.Apps.Spreadsheet {
             var menu = new ContextMenu (grid);
             menu.pointing_to = point_rect (x, y);
             menu.add_item (_("Edit Chart"), "document-edit-symbolic", () => Dialogs.chart (this, ch));
+            menu.add_item (_("Copy as Linked Chart"), "insert-link-symbolic", () => {
+                if (doc.path == null) {
+                    add_toast (new Toast (_("Save the spreadsheet first, so the chart can stay linked to it")));
+                    return;
+                }
+                ChartLink.copy (grid, doc, grid.sheet, ch);
+                add_toast (new Toast (_("Chart copied. Paste it in Write or Slides to keep it linked")));
+            });
             menu.add_item (_("Duplicate"), "edit-copy-symbolic", () => {
                 var copy = ch.copy ();
                 copy.x = ch.x + 24;

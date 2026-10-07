@@ -533,6 +533,13 @@ namespace Singularity.Apps.Spreadsheet {
                 flow.append (b);
             }
             m.add_widget (flow);
+            var recent = new Singularity.Widgets.RecentColorsRow (9);
+            recent.margin_start = recent.margin_end = 6;
+            recent.picked.connect ((c) => {
+                m.popdown ();
+                apply_color (text, c);
+            });
+            m.add_widget (recent);
             m.add_item (_("Other Color…"), "preferences-color-symbolic", () => {
                 var d = new ColorDialog ();
                 d.with_alpha = false;
