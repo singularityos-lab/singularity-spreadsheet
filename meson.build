@@ -174,6 +174,7 @@ ui = files(
   'src/ui/comments_ui.vala',
   'src/ui/review_ui.vala',
   'src/ui/live_ui.vala',
+  'src/ui/collab_bus.vala',
   'src/ui/outline_gutter.vala',
   'src/ui/edit_overlay.vala',
   'src/ui/edit_dialogs.vala',
@@ -216,6 +217,12 @@ install_data('data/dev.sinty.spreadsheet.gschema.xml',
 
 install_data('data/dev.sinty.spreadsheet.json',
   install_dir: get_option('datadir') / 'singularity' / 'app-settings'
+)
+
+install_data('data/capabilities/dev.sinty.Collab.Sheet1.ini',
+  install_dir: get_option('datadir') / 'singularity' / 'capabilities')
+install_data('data/capabilities/dev.sinty.Spreadsheet1.ini',
+  install_dir: get_option('datadir') / 'singularity' / 'capabilities'
 )
 
 install_data('data/dev.sinty.spreadsheet.desktop',

@@ -257,6 +257,96 @@ namespace Singularity.Apps.Spreadsheet {
             });
         }
 
+        private static string doc_title (SpreadsheetWindow win) {
+            string t = win.title ?? "";
+            return t != "" ? t : _("Spreadsheet");
+        }
+
+        public static void start_collab (SpreadsheetWindow win, Singularity.Collab.Person person) {
+            var st = state_of (win);
+            if (st.session != null && st.session.mode == LiveMode.COLLAB) {
+                st.session.host_collab.begin (new Json.Object (), person, "Sheet", doc_title (win), (o, res) => {
+                    try {
+                        st.session.host_collab.end (res);
+                        toast (win, _("Invitation sent to %s.").printf (person.name));
+                    } catch (Error e) {
+                        toast (win, e.message);
+                    }
+                });
+                return;
+            }
+            if (st.session != null) stop (win, true);
+            var s = new LiveSession (me (), "sheet-live", "/sheet");
+            wire (win, s);
+            var sy = new LiveSheetSync (win.doc, s.my_id);
+            var snap = sy.snapshot ();
+            sy.detach ();
+            s.host_collab.begin (snap, person, "Sheet", doc_title (win), (o, res) => {
+                try {
+                    s.host_collab.end (res);
+                    attach_sync (win, 0, 0);
+                    update_chip (win);
+                    toast (win, _("Invitation sent to %s.").printf (person.name));
+                } catch (Error e) {
+                    toast (win, e.message);
+                    stop (win, true);
+                }
+            });
+        }
+
+        public static void join_collab (SpreadsheetWindow win, string session, string snapshot, string from) {
+            var s = new LiveSession (me (), "sheet-live", "/sheet");
+            wire (win, s);
+            s.welcome.connect ((state) => {
+                try {
+                    int64 clock;
+                    int sv;
+                    var book = LiveSheetSync.book_from (state, out clock, out sv);
+                    var st = state_of (win);
+                    var keep = st.session;
+                    st.session = null;
+                    win.load_document (new Document.with_book (book, null));
+                    st.session = keep;
+                    attach_sync (win, clock, sv);
+                    update_chip (win);
+                    toast (win, _("You are editing with %s.").printf (from));
+                } catch (Error e) {
+                    toast (win, e.message);
+                    stop (win, true);
+                }
+            });
+            s.join_collab (session, snapshot);
+        }
+
+        private static void people_group (SpreadsheetWindow win, Gtk.Box box, Singularity.Widgets.AppDialog dlg, bool inviting) {
+            if (!Singularity.Collab.Client.installed ()) return;
+            var client = Singularity.Collab.Client.get_default ();
+            var g = new PreferencesGroup (inviting ? _("Invite More People") : _("People Nearby"),
+                _("They are asked to accept, then they edit with you in real time."));
+            box.prepend (g);
+            client.refresh_people.begin ((o, res) => {
+                client.refresh_people.end (res);
+                int shown = 0;
+                foreach (var p in client.people) {
+                    if (!p.can_join) continue;
+                    var person = p;
+                    var row = new ActionRow (p.name, p.provider_name, p.icon_name);
+                    row.activatable = true;
+                    row.activated.connect (() => {
+                        dlg.close ();
+                        start_collab (win, person);
+                    });
+                    g.add_row (row);
+                    shown++;
+                }
+                if (shown == 0) {
+                    var none = new ActionRow (_("Nobody Is Reachable"), _("Pair a computer in Settings, Connected Devices"), "network-offline-symbolic");
+                    none.activatable = false;
+                    g.add_row (none);
+                }
+            });
+        }
+
         public static void start_folder (SpreadsheetWindow win, string dir, bool create) throws Error {
             var s = new LiveSession (me (), "sheet-live", "/sheet");
             wire (win, s);
@@ -311,7 +401,9 @@ namespace Singularity.Apps.Spreadsheet {
             if (st.session != null) {
                 var s = st.session;
                 var g = new PreferencesGroup (s.mode == LiveMode.FOLDER ? _("Shared through a folder") : _("Live session"));
-                if (s.mode == LiveMode.HOST) {
+                if (s.mode == LiveMode.COLLAB) {
+                    g.add_row (new ActionRow (_("Shared with People Nearby"), s.collab_hosting ? _("You started this session") : _("You joined this session")));
+                } else if (s.mode == LiveMode.HOST) {
                     var link = new ActionRow (_("Link"), s.link);
                     var copy = ToolDialogs.flat ("edit-copy-symbolic", _("Copy Link"));
                     copy.clicked.connect (() => {
@@ -339,9 +431,11 @@ namespace Singularity.Apps.Spreadsheet {
                     dlg.close ();
                 });
                 bar.prepend (stop_btn);
+                if (s.mode == LiveMode.COLLAB && s.collab_hosting) people_group (win, box, dlg, true);
                 dlg.open_dialog ();
                 return;
             }
+            people_group (win, box, dlg, false);
             var hg = new PreferencesGroup (_("On this network"), _("Others join with the link and its key. Every edit merges cell by cell, and everyone sees each other's selection."));
             var start = new ActionRow (_("Start a Live Session"), _("Creates a link to share"));
             start.activated.connect (() => {
