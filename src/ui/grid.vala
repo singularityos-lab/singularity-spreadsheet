@@ -220,6 +220,7 @@ namespace Singularity.Apps.Spreadsheet {
 
             query_tooltip.connect (on_tooltip);
             doc.changed.connect (() => {
+                doc_changes++;
                 cond = null;
                 rebuild_axes ();
                 queue_draw ();
@@ -262,6 +263,7 @@ namespace Singularity.Apps.Spreadsheet {
         }
 
         private void rebuild_axes () {
+            axes_changes++;
             rows = new Axis (MAX_ROWS, sheet.default_row_height, sheet.row_heights, sheet.hidden_rows);
             cols = new Axis (MAX_COLS, sheet.default_col_width, sheet.col_widths, sheet.hidden_cols);
         }
@@ -276,15 +278,30 @@ namespace Singularity.Apps.Spreadsheet {
             zoom_changed ();
         }
 
+        private Singularity.Widgets.TileCache body_tiles = new Singularity.Widgets.TileCache (256);
+        private bool scroll_pending = false;
+        private string tile_state = "";
+        private uint doc_changes = 0;
+        private uint axes_changes = 0;
+        private const double MAX_TILED_SPEED = 20000;
+        private int64 last_tile_time = 0;
+        private double last_tile_hscroll = 0;
+        private double last_tile_vscroll = 0;
+        private double tile_hscroll = double.NAN;
+        private double tile_vscroll = double.NAN;
+        private double frame_hw = -1;
+        private double frame_hh = -1;
+
         private double hw {
             get {
+                if (frame_hw >= 0) return frame_hw;
                 int digits = (last_visible_row () + 1).to_string ().length;
                 return gutter_w + Math.round ((24 + 8 * int.max (digits, 3)) * zoom);
             }
         }
 
         private double hh {
-            get { return gutter_h + Math.round (26 * zoom); }
+            get { return frame_hh >= 0 ? frame_hh : gutter_h + Math.round (26 * zoom); }
         }
 
         public double gutter_w {
@@ -312,11 +329,11 @@ namespace Singularity.Apps.Spreadsheet {
         }
 
         private double hscroll {
-            get { return _hadj != null ? _hadj.value : 0; }
+            get { return !tile_hscroll.is_nan () ? tile_hscroll : (_hadj != null ? _hadj.value : 0); }
         }
 
         private double vscroll {
-            get { return _vadj != null ? _vadj.value : 0; }
+            get { return !tile_vscroll.is_nan () ? tile_vscroll : (_vadj != null ? _vadj.value : 0); }
         }
 
         public double col_x (int c) {
@@ -369,6 +386,7 @@ namespace Singularity.Apps.Spreadsheet {
         }
 
         private void on_scrolled () {
+            scroll_pending = true;
             update_adjustments ();
             if (editing) queue_allocate ();
             queue_draw ();
@@ -563,19 +581,49 @@ namespace Singularity.Apps.Spreadsheet {
         }
 
         public override void snapshot (Gtk.Snapshot snapshot) {
+            frame_hw = frame_hh = -1;
+            double fixed_hw = hw, fixed_hh = hh;
+            frame_hw = fixed_hw;
+            frame_hh = fixed_hh;
+            snapshot_frame (snapshot);
+            frame_hw = frame_hh = -1;
+        }
+
+        private void snapshot_frame (Gtk.Snapshot snapshot) {
             if (cond == null) cond = new CondEval (doc.book, sheet);
             load_colors ();
             double w = get_width (), h = get_height ();
-            var cr = snapshot.append_cairo (Graphene.Rect ().init (0, 0, (float) w, (float) h));
-            hex (cr, paper ());
-            cr.paint ();
+            var bg = Gdk.RGBA ();
+            bg.parse (paper ());
+            snapshot.append_color (bg, Graphene.Rect ().init (0, 0, (float) w, (float) h));
 
             int fr = sheet.freeze_rows, fc = sheet.freeze_cols;
             int sr = first_scroll_row (), sc = first_scroll_col ();
             int er = last_visible_row (), ec = last_visible_col ();
             double cx0 = hw + frozen_w, cy0 = hh + frozen_h;
 
-            draw_region (cr, sr, er, sc, ec, cx0, cy0, w - cx0, h - cy0);
+            string state = body_state ();
+            if (!scroll_pending || state != tile_state) body_tiles.invalidate ();
+            tile_state = state;
+            scroll_pending = false;
+            bool use_tiles = w > cx0 && h > cy0;
+            var body = Graphene.Rect ().init ((float) cx0, (float) cy0, (float) (w - cx0), (float) (h - cy0));
+            var clock = get_frame_clock ();
+            int64 now = clock != null ? clock.get_frame_time () : get_monotonic_time ();
+            double dt = (now - last_tile_time) / 1000000.0;
+            double speed = dt > 0 ? double.max ((hscroll - last_tile_hscroll).abs (), (vscroll - last_tile_vscroll).abs ()) / dt : 0;
+            last_tile_hscroll = hscroll;
+            last_tile_vscroll = vscroll;
+            last_tile_time = now;
+            if (use_tiles && speed > MAX_TILED_SPEED) use_tiles = false;
+            if (use_tiles) {
+                body_tiles.snapshot (snapshot, this, body, hscroll, vscroll,
+                    (tcr, x, y, tw, th) => draw_body_tile (tcr, x, y, tw, th, cx0, cy0));
+            }
+
+            var cr = snapshot.append_cairo (Graphene.Rect ().init (0, 0, (float) w, (float) h));
+            if (use_tiles) draw_region_marks (cr, sr, er, sc, ec, cx0, cy0, w - cx0, h - cy0);
+            else draw_region (cr, sr, er, sc, ec, cx0, cy0, w - cx0, h - cy0);
             if (fc > 0) draw_region (cr, sr, er, 0, fc - 1, hw, cy0, frozen_w, h - cy0);
             if (fr > 0) draw_region (cr, 0, fr - 1, sc, ec, cx0, hh, w - cx0, frozen_h);
             if (fr > 0 && fc > 0) draw_region (cr, 0, fr - 1, 0, fc - 1, hw, hh, frozen_w, frozen_h);
@@ -609,7 +657,7 @@ namespace Singularity.Apps.Spreadsheet {
             return editing && editor_scroll != null && editor_scroll.visible;
         }
 
-        private void draw_region (Cairo.Context cr, int r0, int r1, int c0, int c1, double clip_x, double clip_y, double clip_w, double clip_h) {
+        private void draw_region (Cairo.Context cr, int r0, int r1, int c0, int c1, double clip_x, double clip_y, double clip_w, double clip_h, bool base_only = false) {
             if (clip_w <= 0 || clip_h <= 0 || r1 < r0 || c1 < c0) return;
             cr.save ();
             cr.rectangle (clip_x, clip_y, clip_w, clip_h);
@@ -659,9 +707,57 @@ namespace Singularity.Apps.Spreadsheet {
             }
             foreach (var job in text_jobs) draw_text (cr, job, r0, r1, c0, c1);
 
-            draw_decorations (cr, r0, r1, c0, c1);
-            draw_selection (cr, sel);
+            if (!base_only) {
+                draw_decorations (cr, r0, r1, c0, c1);
+                draw_selection (cr, sel);
+            }
             cr.restore ();
+        }
+
+        private void draw_region_marks (Cairo.Context cr, int r0, int r1, int c0, int c1, double clip_x, double clip_y, double clip_w, double clip_h) {
+            if (clip_w <= 0 || clip_h <= 0 || r1 < r0 || c1 < c0) return;
+            cr.save ();
+            cr.rectangle (clip_x, clip_y, clip_w, clip_h);
+            cr.clip ();
+            draw_decorations (cr, r0, r1, c0, c1);
+            draw_selection (cr, selection);
+            cr.restore ();
+        }
+
+        private string body_state () {
+            return "%u|%u|%u|%p|%g|%s|%s|%s|%d|%d|%d|%d|%s|%s".printf (doc.book.generation, doc_changes, axes_changes, sheet, zoom,
+                show_formulas.to_string (), sheet.show_grid.to_string (), editing.to_string (), cur_row, cur_col,
+                sheet.freeze_rows, sheet.freeze_cols, paper (), fg.to_string ());
+        }
+
+        private void draw_body_tile (Cairo.Context cr, double x, double y, double width, double height, double cx0, double cy0) {
+            int fr = sheet.freeze_rows, fc = sheet.freeze_cols;
+            tile_hscroll = cx0;
+            tile_vscroll = cy0;
+            int c0 = int.max (fc, cols.index_at (cols.pos (fc) + (int64) (x / zoom)));
+            int c1 = int.min (MAX_COLS - 1, cols.index_at (cols.pos (fc) + (int64) ((x + width) / zoom)));
+            int r0 = int.max (fr, rows.index_at (rows.pos (fr) + (int64) (y / zoom)));
+            int r1 = int.min (MAX_ROWS - 1, rows.index_at (rows.pos (fr) + (int64) ((y + height) / zoom)) + 1);
+            int left = c0, right = c1;
+            for (int r = r0; r <= r1; r++) {
+                for (int k = c0 - 1; k >= int.max (fc, c0 - 30); k--) {
+                    if (!cell_free (r, k)) {
+                        left = int.min (left, k);
+                        break;
+                    }
+                }
+                for (int k = c1 + 1; k <= int.min (MAX_COLS - 1, c1 + 30); k++) {
+                    if (!cell_free (r, k)) {
+                        right = int.max (right, k);
+                        break;
+                    }
+                }
+            }
+            c0 = left;
+            c1 = right;
+            draw_region (cr, r0, r1, c0, c1, x, y, width, height, true);
+            tile_hscroll = double.NAN;
+            tile_vscroll = double.NAN;
         }
 
         private class TextJob {
@@ -1148,11 +1244,15 @@ namespace Singularity.Apps.Spreadsheet {
             cr.save ();
             cr.rectangle (hw, hh, w - hw, h - hh);
             cr.clip ();
-            foreach (var cl in sheet.cells.values) {
-                if (cl.formula == null) continue;
-                bool fzr = cl.row < sheet.freeze_rows, fzc = cl.col < sheet.freeze_cols;
-                if (!fzr && (cl.row < fr || cl.row > lr)) continue;
-                if (!fzc && (cl.col < fc || cl.col > lc)) continue;
+            int[] rows_in_view = {};
+            for (int r = 0; r < sheet.freeze_rows; r++) rows_in_view += r;
+            for (int r = int.max (fr, sheet.freeze_rows); r <= lr; r++) rows_in_view += r;
+            int[] cols_in_view = {};
+            for (int c = 0; c < sheet.freeze_cols; c++) cols_in_view += c;
+            for (int c = int.max (fc, sheet.freeze_cols); c <= lc; c++) cols_in_view += c;
+            foreach (int r in rows_in_view) foreach (int c in cols_in_view) {
+                var cl = sheet.get_cell (r, c);
+                if (cl == null || cl.formula == null) continue;
                 var v = cl.value;
                 if (v == null || v.image == null) continue;
                 double x = col_x (cl.col), y = row_y (cl.row);
