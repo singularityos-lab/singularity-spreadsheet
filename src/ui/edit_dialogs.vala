@@ -245,7 +245,8 @@ namespace Singularity.Apps.Spreadsheet {
             source.text = src_shown;
             v1.text = v.kind == ValidationKind.CUSTOM ? "" : v.formula1;
             v2.text = v.formula2;
-            formula.text = v.kind == ValidationKind.CUSTOM ? (v.formula1.has_prefix ("=") ? v.formula1 : "=" + v.formula1) : "";
+            if (v.kind != ValidationKind.CUSTOM) formula.text = "";
+            else formula.text = v.formula1.has_prefix ("=") ? v.formula1 : "=" + v.formula1;
             g.add_row (kind);
             g.add_row (op);
             g.add_row (v1);

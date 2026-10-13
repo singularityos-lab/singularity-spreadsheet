@@ -828,7 +828,8 @@ namespace Singularity.Apps.Spreadsheet {
             string nf_color = "";
             job.text = show_formulas && cell != null && cell.formula != null ? cell.input : NumberFormat.format_value (v, style.number_format, out nf_color, doc.book.date1904);
             if (show_formulas && cell != null && cell.formula != null) nf_color = "";
-            job.color = cs != null && cs.color != "" ? cs.color : (nf_color != "" ? named_color (nf_color) : style.color);
+            if (cs != null && cs.color != "") job.color = cs.color;
+            else job.color = nf_color != "" ? named_color (nf_color) : style.color;
             job.color = readable (job.color, fill);
             job.bold = style.bold || (cs != null && cs.bold);
             job.italic = style.italic || (cs != null && cs.italic);

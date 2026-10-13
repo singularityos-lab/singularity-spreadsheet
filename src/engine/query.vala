@@ -789,7 +789,9 @@ namespace Singularity.Apps.Spreadsheet {
             PivotAgg agg = fn == "count" ? PivotAgg.COUNT : fn == "average" ? PivotAgg.AVERAGE : fn == "min" ? PivotAgg.MIN : fn == "max" ? PivotAgg.MAX : fn == "countNums" ? PivotAgg.COUNT_NUMS : PivotAgg.SUM;
             var nd = new DataFrame ();
             foreach (string k in keys) nd.columns.add (df.columns[df.require (k)]);
-            nd.columns.add (name != "" ? name : (vc >= 0 ? "%s of %s".printf (agg.label (), df.columns[vc]) : _("Count")));
+            string heading = name;
+            if (heading == "") heading = vc >= 0 ? "%s of %s".printf (agg.label (), df.columns[vc]) : _("Count");
+            nd.columns.add (heading);
             foreach (string key in order) {
                 var row = new Gee.ArrayList<Value> ();
                 row.add_all (firsts[key]);

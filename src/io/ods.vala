@@ -873,7 +873,8 @@ namespace Singularity.Apps.Spreadsheet {
                             if (sname == "") sname = row_default;
                             int styled = content || crep <= 256 ? crep : 0;
                             for (int j = 0; j < styled && col + j < MAX_COLS && j < 1024; j++) {
-                                string eff = sname != "" ? sname : (col + j < col_defaults.size ? col_defaults[col + j] : "");
+                                string eff = sname;
+                                if (eff == "" && col + j < col_defaults.size) eff = col_defaults[col + j];
                                 read_cell (sheet, c, r, col + j, eff);
                             }
                             int cs = int.parse (attr (c, "number-columns-spanned", Ods.NS_TABLE));
