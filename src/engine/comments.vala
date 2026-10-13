@@ -70,7 +70,7 @@ namespace Singularity.Apps.Spreadsheet {
         public static string author_name = "";
 
         public static string current_author () {
-            if (author_name.strip () != "") return author_name.strip ();
+            if (author_name != null && author_name.strip () != "") return author_name.strip ();
             string n = Environment.get_real_name ();
             if (n == "" || n == "Unknown") n = Environment.get_user_name ();
             return n != "" ? n : "Author";
