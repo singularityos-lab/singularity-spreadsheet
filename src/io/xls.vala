@@ -40,8 +40,11 @@ namespace Singularity.Apps.Spreadsheet {
         public Cfb (owned uint8[] d) throws XlsError {
             data = (owned) d;
             if (!sniff (data)) throw new XlsError.FORMAT ("not a compound file");
-            sector_size = 1 << u16 (0x1E);
-            mini_size = 1 << u16 (0x20);
+            int sector_shift = u16 (0x1E);
+            int mini_shift = u16 (0x20);
+            if ((sector_shift != 9 && sector_shift != 12) || mini_shift < 6 || mini_shift > sector_shift) throw new XlsError.FORMAT ("not a compound file");
+            sector_size = 1 << sector_shift;
+            mini_size = 1 << mini_shift;
             mini_cutoff = u32 (0x38);
             uint32 first_dir = u32 (0x30);
             uint32 first_minifat = u32 (0x3C);
@@ -53,7 +56,8 @@ namespace Singularity.Apps.Spreadsheet {
                 if (s < 0xFFFFFFFA) fat_sectors.add (s);
             }
             uint32 d_sec = first_difat;
-            for (uint32 k = 0; k < num_difat && d_sec < 0xFFFFFFFA; k++) {
+            uint32 max_sectors = data.length / sector_size;
+            for (uint32 k = 0; k < num_difat && k < max_sectors && d_sec < 0xFFFFFFFA; k++) {
                 int off = sector_offset (d_sec);
                 if (off < 0) break;
                 int per = sector_size / 4 - 1;
@@ -80,7 +84,7 @@ namespace Singularity.Apps.Spreadsheet {
                 int type = dir[e + 66];
                 if (nlen < 2 || type == 0) continue;
                 var sb = new StringBuilder ();
-                for (int i = 0; i < nlen - 2; i += 2) sb.append_unichar ((unichar) (dir[e + i] | (dir[e + i + 1] << 8)));
+                for (int i = 0; i < nlen - 2 && i < 62; i += 2) sb.append_unichar ((unichar) (dir[e + i] | (dir[e + i + 1] << 8)));
                 uint32 start = (uint32) dir[e + 116] | ((uint32) dir[e + 117] << 8) | ((uint32) dir[e + 118] << 16) | ((uint32) dir[e + 119] << 24);
                 uint32 size = (uint32) dir[e + 120] | ((uint32) dir[e + 121] << 8) | ((uint32) dir[e + 122] << 16) | ((uint32) dir[e + 123] << 24);
                 if (type == 5) {
@@ -103,11 +107,11 @@ namespace Singularity.Apps.Spreadsheet {
             int count = dir.length / 128;
             if (count == 0) return;
             var visited = new Gee.HashSet<uint32> ();
-            walk (dir, u32_at (dir, 76), "", visited, count);
+            walk (dir, u32_at (dir, 76), "", visited, count, 0);
         }
 
-        private void walk (uint8[] dir, uint32 id, string prefix, Gee.HashSet<uint32> visited, int count) {
-            if (id >= count || visited.contains (id)) return;
+        private void walk (uint8[] dir, uint32 id, string prefix, Gee.HashSet<uint32> visited, int count, int depth) {
+            if (id >= count || depth > 512 || visited.contains (id)) return;
             visited.add (id);
             int e = (int) id * 128;
             int nlen = dir[e + 64] | (dir[e + 65] << 8);
@@ -115,10 +119,10 @@ namespace Singularity.Apps.Spreadsheet {
             var sb = new StringBuilder ();
             for (int i = 0; i < nlen - 2 && i < 62; i += 2) sb.append_unichar ((unichar) (dir[e + i] | (dir[e + i + 1] << 8)));
             string path = prefix + sb.str;
-            walk (dir, u32_at (dir, e + 68), prefix, visited, count);
-            walk (dir, u32_at (dir, e + 72), prefix, visited, count);
+            walk (dir, u32_at (dir, e + 68), prefix, visited, count, depth + 1);
+            walk (dir, u32_at (dir, e + 72), prefix, visited, count, depth + 1);
             if (type == 1) {
-                walk (dir, u32_at (dir, e + 76), path + "/", visited, count);
+                walk (dir, u32_at (dir, e + 76), path + "/", visited, count, depth + 1);
             } else if (type == 2) {
                 uint32 start = u32_at (dir, e + 116);
                 uint32 size = u32_at (dir, e + 120);
@@ -156,8 +160,9 @@ namespace Singularity.Apps.Spreadsheet {
             uint32 s = start;
             int guard = 0;
             while (s < 0xFFFFFFFA && s < minifat.length && guard++ < 1000000) {
-                int off = (int) s * mini_size;
-                if (off + mini_size > ministream.length) break;
+                int64 off64 = (int64) s * mini_size;
+                if (off64 + mini_size > ministream.length) break;
+                int off = (int) off64;
                 out_a.append (ministream[off:off + mini_size]);
                 if (out_a.len >= size) break;
                 s = minifat[s];
@@ -240,8 +245,18 @@ namespace Singularity.Apps.Spreadsheet {
             return x.book;
         }
 
+        private static uint8[] sub (uint8[] d, int from, int to) {
+            int a = from.clamp (0, d.length);
+            int b = to.clamp (a, d.length);
+            return d[a:b];
+        }
+
+        private static uint8 at (uint8[] d, int o) {
+            return o >= 0 && o < d.length ? d[o] : 0;
+        }
+
         private static uint16 u16 (uint8[] d, int o) {
-            if (o + 1 >= d.length) return 0;
+            if (o < 0 || o + 1 >= d.length) return 0;
             return (uint16) (d[o] | (d[o + 1] << 8));
         }
 
@@ -250,13 +265,13 @@ namespace Singularity.Apps.Spreadsheet {
         }
 
         private static uint32 u32 (uint8[] d, int o) {
-            if (o + 3 >= d.length) return 0;
+            if (o < 0 || o + 3 >= d.length) return 0;
             return (uint32) d[o] | ((uint32) d[o + 1] << 8) | ((uint32) d[o + 2] << 16) | ((uint32) d[o + 3] << 24);
         }
 
         private static double f64 (uint8[] d, int o) {
             uint64 bits = 0;
-            for (int i = 7; i >= 0; i--) bits = (bits << 8) | (o + i < d.length ? d[o + i] : 0);
+            for (int i = 7; i >= 0; i--) bits = (bits << 8) | (o + i >= 0 && o + i < d.length ? d[o + i] : 0);
             double v = 0;
             Memory.copy (&v, &bits, 8);
             return v;
@@ -311,9 +326,9 @@ namespace Singularity.Apps.Spreadsheet {
         }
 
         private static string short_string (uint8[] d, int o, out int used) {
-            int cch = d[o];
+            int cch = at (d, o);
             int u;
-            string s = chars (d, o + 2, cch, (d[o + 1] & 1) != 0, out u);
+            string s = chars (d, o + 2, cch, (at (d, o + 1) & 1) != 0, out u);
             used = 2 + u;
             return s;
         }
@@ -346,7 +361,7 @@ namespace Singularity.Apps.Spreadsheet {
             int p = 8;
             uint32 total = u32 (first, 4);
             string[] list = {};
-            for (uint32 k = 0; k < total; k++) {
+            for (uint32 k = 0; k < total && bi < blocks.size; k++) {
                 unowned uint8[] d = blocks[bi].get_data ();
                 if (p >= d.length) {
                     bi++;
@@ -355,7 +370,7 @@ namespace Singularity.Apps.Spreadsheet {
                     p = 0;
                 }
                 int cch = u16 (d, p);
-                uint8 flags = d[p + 2];
+                uint8 flags = at (d, p + 2);
                 p += 3;
                 int runs = 0, ext = 0;
                 if ((flags & 8) != 0) {
@@ -363,7 +378,7 @@ namespace Singularity.Apps.Spreadsheet {
                     p += 2;
                 }
                 if ((flags & 4) != 0) {
-                    ext = (int) u32 (d, p);
+                    ext = (int) uint32.min (u32 (d, p), int.MAX / 2);
                     p += 4;
                 }
                 bool wide = (flags & 1) != 0;
@@ -374,17 +389,21 @@ namespace Singularity.Apps.Spreadsheet {
                         bi++;
                         if (bi >= blocks.size) break;
                         d = blocks[bi].get_data ();
-                        wide = (d[0] & 1) != 0;
+                        wide = (at (d, 0) & 1) != 0;
                         p = 1;
                     }
                     if (wide) {
                         sb.append_unichar ((unichar) u16 (d, p));
                         p += 2;
                     } else {
-                        sb.append_unichar ((unichar) d[p]);
+                        sb.append_unichar ((unichar) at (d, p));
                         p += 1;
                     }
                     got++;
+                }
+                if (bi >= blocks.size) {
+                    list += sb.str;
+                    break;
                 }
                 int skip = runs * 4 + ext;
                 while (skip > 0 && bi < blocks.size) {
@@ -505,8 +524,8 @@ namespace Singularity.Apps.Spreadsheet {
                     case 0x0085:
                         int used;
                         sheet_pos.add ((int) u32 (d, 0));
-                        sheet_names.add (d[5] == 0 ? short_string (d, 6, out used) : "\x01");
-                        sheet_states.add (d[4] & 3);
+                        sheet_names.add (at (d, 5) == 0 ? short_string (d, 6, out used) : "\x01");
+                        sheet_states.add (at (d, 4) & 3);
                         break;
                     case 0x00FC: read_sst (d, continues (ref pos)); break;
                     case 0x041E:
@@ -571,17 +590,17 @@ namespace Singularity.Apps.Spreadsheet {
             string[] nm = {};
             foreach (var nb in names_raw) {
                 unowned uint8[] d = nb.get_data ();
-                int cch = d[3];
+                int cch = at (d, 3);
                 int cce = u16 (d, 4);
                 int itab = u16 (d, 8);
                 bool builtin_name = (u16 (d, 0) & 0x20) != 0;
                 int u5;
-                string name = chars (d, 15, cch, (d[14] & 1) != 0, out u5);
+                string name = chars (d, 15, cch, (at (d, 14) & 1) != 0, out u5);
                 nm += builtin_name ? "_xlnm." + name : name;
-                if (builtin_name && itab > 0 && cch == 1 && (d[15] == 0x06 || d[15] == 0x07)) {
-                    string bname = d[15] == 0x06 ? "Print_Area" : "Print_Titles";
+                if (builtin_name && itab > 0 && cch == 1 && (at (d, 15) == 0x06 || at (d, 15) == 0x07)) {
+                    string bname = at (d, 15) == 0x06 ? "Print_Area" : "Print_Titles";
                     allow_union = true;
-                    string? bf = decode (d[15 + u5:int.min (15 + u5 + cce, d.length)], 0, 0, null, false);
+                    string? bf = decode (sub (d, 15 + u5, 15 + u5 + cce), 0, 0, null, false);
                     allow_union = false;
                     if (bf != null) {
                         try {
@@ -596,7 +615,7 @@ namespace Singularity.Apps.Spreadsheet {
                     continue;
                 }
                 if (builtin_name || (u16 (d, 0) & 1) != 0) continue;
-                uint8[] rgce = d[15 + u5:int.min (15 + u5 + cce, d.length)];
+                uint8[] rgce = sub (d, 15 + u5, 15 + u5 + cce);
                 string? f = decode (rgce, 0, 0, null, false);
                 if (f == null) continue;
                 if (itab > 0 && itab - 1 < book.sheets.size) book.sheets[itab - 1].names[name] = f;
@@ -696,46 +715,46 @@ namespace Singularity.Apps.Spreadsheet {
                         }
                         break;
                     case 0x0205:
-                        if (d[7] == 0) set_value (sh, u16 (d, 0), u16 (d, 2), Value.boolean (d[6] != 0), u16 (d, 4));
-                        else set_value (sh, u16 (d, 0), u16 (d, 2), Value.err (err_code (d[6])), u16 (d, 4));
+                        if (at (d, 7) == 0) set_value (sh, u16 (d, 0), u16 (d, 2), Value.boolean (at (d, 6) != 0), u16 (d, 4));
+                        else set_value (sh, u16 (d, 0), u16 (d, 2), Value.err (err_code (at (d, 6))), u16 (d, 4));
                         break;
                     case 0x0006:
                         int fr = u16 (d, 0), fc = u16 (d, 2), fx = u16 (d, 4);
                         Value cached;
                         bool str_follows = false;
-                        if (d[12] == 0xFF && d[13] == 0xFF) {
-                            switch (d[6]) {
+                        if (at (d, 12) == 0xFF && at (d, 13) == 0xFF) {
+                            switch (at (d, 6)) {
                                 case 0: cached = Value.str (""); str_follows = true; break;
-                                case 1: cached = Value.boolean (d[8] != 0); break;
-                                case 2: cached = Value.err (err_code (d[8])); break;
+                                case 1: cached = Value.boolean (at (d, 8) != 0); break;
+                                case 2: cached = Value.err (err_code (at (d, 8))); break;
                                 default: cached = Value.str (""); break;
                             }
                         } else {
                             cached = Value.num (f64 (d, 6));
                         }
                         int cce = u16 (d, 20);
-                        uint8[] rgce = d[22:int.min (22 + cce, d.length)];
-                        uint8[] extra = 22 + cce < d.length ? d[22 + cce:d.length] : new uint8[0];
+                        uint8[] rgce = sub (d, 22, 22 + cce);
+                        uint8[] extra = sub (d, 22 + cce, d.length);
                         if (rgce.length > 0 && rgce[0] == 0x01 && pos + 4 <= stream.length && u16 (stream, pos) == 0x04BC) {
                             int peek = pos;
                             var sr = read_rec (ref peek);
                             var sh_f = new XlsShared ();
                             sh_f.r1 = u16 (sr.data, 0);
                             sh_f.r2 = u16 (sr.data, 2);
-                            sh_f.c1 = sr.data[4];
-                            sh_f.c2 = sr.data[5];
+                            sh_f.c1 = at (sr.data, 4);
+                            sh_f.c2 = at (sr.data, 5);
                             int scce = u16 (sr.data, 8);
-                            sh_f.rgce = sr.data[10:int.min (10 + scce, sr.data.length)];
+                            sh_f.rgce = sub (sr.data, 10, 10 + scce);
                             shared.add (sh_f);
                         }
                         Area? array_ref = null;
                         if (rgce.length > 0 && rgce[0] == 0x01 && pos + 4 <= stream.length && u16 (stream, pos) == 0x0221) {
                             int peek2 = pos;
                             var ar = read_rec (ref peek2);
-                            int ar1 = u16 (ar.data, 0), ar2 = u16 (ar.data, 2), ac1 = ar.data[4], ac2 = ar.data[5];
+                            int ar1 = u16 (ar.data, 0), ar2 = u16 (ar.data, 2), ac1 = at (ar.data, 4), ac2 = at (ar.data, 5);
                             int acce = u16 (ar.data, 12);
-                            uint8[] argce = ar.data[14:int.min (14 + acce, ar.data.length)];
-                            uint8[] aextra = 14 + acce < ar.data.length ? ar.data[14 + acce:ar.data.length] : new uint8[0];
+                            uint8[] argce = sub (ar.data, 14, 14 + acce);
+                            uint8[] aextra = sub (ar.data, 14 + acce, ar.data.length);
                             string? atext = decode (argce, fr, fc, aextra, true);
                             if (atext != null) {
                                 array_texts["%d:%d".printf (ar1, ac1)] = atext;

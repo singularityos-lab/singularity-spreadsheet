@@ -795,6 +795,32 @@ void test_xlsb_import () {
     }
 }
 
+void test_xls_damaged () {
+    LocaleInfo.set_c ();
+    var book = sample ();
+    string path = tmp_path ("damaged-source.xls");
+    uint8[] good;
+    try {
+        XlsWriter.save (book, path);
+        FileUtils.get_data (path, out good);
+    } catch (Error e) {
+        same ("xls damaged setup", "", e.message);
+        return;
+    }
+    var rand = new Rand.with_seed (21);
+    for (int round = 0; round < 250; round++) {
+        uint8[] d = good.copy ();
+        int flips = 1 + rand.int_range (0, 8);
+        for (int i = 0; i < flips; i++) d[rand.int_range (0, d.length)] = (uint8) rand.int_range (0, 256);
+        if (round % 5 == 0) d.length = rand.int_range (512, d.length);
+        try {
+            Xls.load_data ((owned) d);
+        } catch (Error e) {
+        }
+    }
+    same ("xls damaged files do not crash", "ok", "ok");
+}
+
 void test_xls_roundtrip () {
     LocaleInfo.set_c ();
     var book = sample ();
@@ -951,6 +977,7 @@ int main (string[] args) {
     Test.add_func ("/fidelity/ods-calc-titles", test_ods_calc_and_titles);
     Test.add_func ("/fidelity/xlsb-import", test_xlsb_import);
     Test.add_func ("/fidelity/xls-roundtrip", test_xls_roundtrip);
+    Test.add_func ("/fidelity/xls-damaged", test_xls_damaged);
     Test.add_func ("/fidelity/xlsb-roundtrip", test_xlsb_roundtrip);
     return Test.run ();
 }

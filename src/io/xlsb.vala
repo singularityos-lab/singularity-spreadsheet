@@ -374,7 +374,7 @@ namespace Singularity.Apps.Spreadsheet {
                         targets.add (wrels.has_key (rid) ? wrels[rid] : "");
                         break;
                     case 362:
-                        uint32 n = u32 (d, 0);
+                        uint32 n = uint32.min (u32 (d, 0), (uint32) int.max (0, d.length - 4) / 12);
                         int[] f1 = {}, f2 = {};
                         for (uint32 i = 0; i < n; i++) {
                             f1 += s32 (d, 4 + (int) i * 12 + 4);
