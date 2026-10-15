@@ -177,7 +177,7 @@ namespace Singularity.Apps.Spreadsheet {
             msg.request_headers.append ("Accept", accept);
             Bytes bytes;
             try {
-                bytes = session.send_and_read (msg, null);
+                bytes = Singularity.HttpBody.read_sync (session, msg, 32 * 1024 * 1024);
             } catch (Error e) {
                 throw new LinkedError.NETWORK (e.message);
             }

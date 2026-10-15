@@ -84,7 +84,7 @@ namespace Singularity.Apps.Spreadsheet {
                 session.user_agent = "Singularity-Spreadsheet";
                 var msg = new Soup.Message ("GET", source);
                 if (msg == null) throw new IOError.INVALID_ARGUMENT ("bad address");
-                var bytes = yield session.send_and_read_async (msg, Priority.DEFAULT, null);
+                var bytes = yield Singularity.HttpBody.read (session, msg, 32 * 1024 * 1024);
                 pending.remove (source);
                 if (msg.status_code >= 200 && msg.status_code < 300 && bytes.length > 0) done[source] = bytes;
                 else failed.add (source);

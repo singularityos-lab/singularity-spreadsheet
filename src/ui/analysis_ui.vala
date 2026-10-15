@@ -998,9 +998,9 @@ namespace Singularity.Apps.Spreadsheet {
             session.user_agent = LinkedConfig.get ().user_agent;
             var msg = new Soup.Message ("GET", url);
             if (msg == null) return;
-            session.send_and_read_async.begin (msg, Priority.DEFAULT, null, (obj, res) => {
+            Singularity.HttpBody.read.begin (session, msg, 16 * 1024 * 1024, Priority.DEFAULT, null, (obj, res) => {
                 try {
-                    var bytes = session.send_and_read_async.end (res);
+                    var bytes = Singularity.HttpBody.read.end (res);
                     if (msg.status_code != 200) return;
                     DirUtils.create_with_parents (Path.get_dirname (path), 0755);
                     FileUtils.set_data (path, bytes.get_data ());

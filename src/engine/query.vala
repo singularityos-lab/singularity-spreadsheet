@@ -182,7 +182,7 @@ namespace Singularity.Apps.Spreadsheet {
                 var session = new Soup.Session ();
                 session.timeout = 30;
                 var msg = new Soup.Message ("GET", loc);
-                var bytes = session.send_and_read (msg, null);
+                var bytes = Singularity.HttpBody.read_sync (session, msg, 128 * 1024 * 1024);
                 if (msg.status_code < 200 || msg.status_code >= 300) throw new QueryError.SOURCE (_("The server answered %u %s.").printf (msg.status_code, msg.reason_phrase ?? ""));
                 unowned uint8[] data = bytes.get_data ();
                 return to_utf8 (data);
