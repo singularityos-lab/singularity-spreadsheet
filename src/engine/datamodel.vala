@@ -1115,7 +1115,11 @@ namespace Singularity.Apps.Spreadsheet {
                         return Value.num (m.kind == CubeKind.MEMBER ? 1 : 0);
                 }
                 if (m.kind != CubeKind.MEMBER) return Value.err (ErrorKind.NA);
-                string p = prop.has_prefix ("[") ? Mdx.parts (prop)[Mdx.parts (prop).length - 1] : prop;
+                string p = prop;
+                if (prop.has_prefix ("[")) {
+                    string[] segs = Mdx.parts (prop);
+                    if (segs.length > 0) p = segs[segs.length - 1];
+                }
                 var mt = cube.model.table (m.table);
                 int kc = mt.col (m.column), pc = mt.col (p);
                 if (pc < 0) return Value.err (ErrorKind.NA);

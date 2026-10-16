@@ -361,6 +361,7 @@ void test_cube () {
     put ("H6", "=CUBESET(" + c + ",\"[Sales].[Region].Children\",,4)");
     check ("=CUBERANKEDMEMBER(" + c + ",H6,1)", "West");
     check ("=CUBEMEMBERPROPERTY(" + c + ",\"[Products].[Product].[Pear]\",\"Category\")", "Fruit B");
+    check ("=CUBEMEMBERPROPERTY(" + c + ",\"[Products].[Product].[Pear]\",\"[Products].[Category]\")", "Fruit B");
     check ("=CUBEMEMBERPROPERTY(" + c + ",\"[Sales].[Region].&[East]\",\"MEMBER_UNIQUE_NAME\")", "[Sales].[Region].&[East]");
     DataModel.store_json (book, "{\"infer\":false,\"relationships\":[{\"fromTable\":\"Sales\",\"fromColumn\":\"Product\",\"toTable\":\"Products\",\"toColumn\":\"Product\"}],\"measures\":[{\"name\":\"Revenue\",\"table\":\"Sales\",\"column\":\"Amount\",\"aggregation\":\"SUM\"},{\"name\":\"Avg Ticket\",\"formula\":\"[Revenue]/[Count of Amount]\"}],\"kpis\":[{\"name\":\"RevenueKPI\",\"value\":\"Revenue\",\"goal\":100,\"low\":0.8,\"high\":1}]}");
     check ("=CUBEVALUE(" + c + ",\"[Measures].[Revenue]\",\"[Sales].[Region].[West]\")", "70");
