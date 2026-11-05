@@ -1149,6 +1149,23 @@ namespace Singularity.Apps.Spreadsheet {
             return true;
         }
 
+        public string save_quietly (string path) throws Error {
+            if (doc == null) throw new IOError.FAILED ("no workbook is open");
+            if (grid.is_editing ()) grid.commit_edit (0, 0);
+            string target = path != "" ? path : (doc.path ?? "");
+            var docs = Environment.get_user_special_dir (UserDirectory.DOCUMENTS) ?? Environment.get_home_dir ();
+            if (target == "") target = Path.build_filename (docs, _("Spreadsheet") + ".xlsx");
+            else if (!Path.is_absolute (target)) target = Path.build_filename (docs, target);
+            if (!FileKind.saveable (target.down ())) target += ".xlsx";
+            var save_kind = FileKind.from_path (target);
+            if (save_kind != FileKind.CSV && save_kind != FileKind.TSV) Versions.keep_previous (target);
+            doc.save_to (target, grid.sheet);
+            RecentManager.get_default ().add_item (File.new_for_path (target).get_uri ());
+            update_title ();
+            CloudActions.sync_back (this, File.new_for_path (target));
+            return target;
+        }
+
         public async bool save (bool save_as) {
             if (doc == null) return false;
             if (grid.is_editing ()) grid.commit_edit (0, 0);

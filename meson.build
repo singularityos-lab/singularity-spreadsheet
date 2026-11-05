@@ -184,6 +184,7 @@ ui = files(
   'src/ui/analysis_ui.vala',
   'src/ui/datamodel_ui.vala',
   'src/ui/pivot_panel.vala',
+  'src/ui/agent_intents.vala',
   'src/ui/query_editor.vala',
   'src/ui/ribbon.vala',
 )

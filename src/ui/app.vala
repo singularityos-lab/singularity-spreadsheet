@@ -228,6 +228,7 @@ namespace Singularity.Apps.Spreadsheet {
 
         protected override void startup () {
             base.startup ();
+            SheetIntents.install (this);
             IconTheme.get_for_display (Gdk.Display.get_default ()).add_resource_path ("/dev/sinty/spreadsheet/icons");
             Singularity.Application.add_app_css (CSS);
             var new_action = new SimpleAction ("new", null);
