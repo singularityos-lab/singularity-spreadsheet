@@ -25,8 +25,8 @@ namespace Singularity.Apps.Spreadsheet {
             win.doc.commit ();
         }
 
-        private static DropDown pick (string[] items) {
-            var dd = new DropDown.from_strings (items);
+        private static ChoiceButton pick (string[] items) {
+            var dd = new ChoiceButton.from_strings (items);
             dd.valign = Align.CENTER;
             return dd;
         }
@@ -43,14 +43,14 @@ namespace Singularity.Apps.Spreadsheet {
             return r;
         }
 
-        private static void link_columns (DataModel m, DropDown tables, DropDown columns) {
+        private static void link_columns (DataModel m, ChoiceButton tables, ChoiceButton columns) {
             tables.notify["selected"].connect (() => {
                 columns.model = new StringList (column_names (m, tables.selected));
                 columns.selected = 0;
             });
         }
 
-        private static string picked (DropDown dd) {
+        private static string picked (ChoiceButton dd) {
             var item = dd.selected_item as StringObject;
             return item != null ? item.string : "";
         }

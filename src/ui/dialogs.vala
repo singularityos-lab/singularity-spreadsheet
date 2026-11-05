@@ -310,7 +310,7 @@ namespace Singularity.Apps.Spreadsheet {
             add.add_row (ref_row);
             string[] scopes = { _("Workbook") };
             foreach (var sh in win.doc.book.sheets) scopes += sh.name;
-            var scope_pick = new DropDown.from_strings (scopes);
+            var scope_pick = new ChoiceButton.from_strings (scopes);
             scope_pick.valign = Align.CENTER;
             var scope_row = new ActionRow (_("Scope"), _("Where the name can be used"));
             scope_row.add_suffix (scope_pick);

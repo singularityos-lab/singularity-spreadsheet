@@ -263,8 +263,8 @@ namespace Singularity.Apps.Spreadsheet {
             return f;
         }
 
-        private DropDown pick (string[] items, int selected) {
-            var d = new DropDown.from_strings (items);
+        private ChoiceButton pick (string[] items, int selected) {
+            var d = new ChoiceButton.from_strings (items);
             d.valign = Align.CENTER;
             d.selected = selected;
             return d;
