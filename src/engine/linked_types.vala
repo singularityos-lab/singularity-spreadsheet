@@ -550,7 +550,7 @@ namespace Singularity.Apps.Spreadsheet {
             string key = kind + ":" + id;
             book.analysis.loading.add (key);
             Done cb = (owned) done;
-            new Thread<bool> ("linked-fetch", () => {
+            Async.dispatch(this, Async.Qos.USER, (c) => {
                 LinkedRecord? rec = null;
                 string err = "";
                 try {
@@ -558,16 +558,14 @@ namespace Singularity.Apps.Spreadsheet {
                 } catch (Error e) {
                     err = e.message;
                 }
-                Idle.add (() => {
+                return () => {
                     book.analysis.loading.remove (key);
                     if (rec != null) book.analysis.records[key] = rec;
                     else book.analysis.failures[key] = err;
                     book.structure_changed = true;
                     cb (rec, err);
                     updated (book);
-                    return Source.REMOVE;
-                });
-                return true;
+                };
             });
         }
 
@@ -575,7 +573,7 @@ namespace Singularity.Apps.Spreadsheet {
 
         public void search_async (string kind, string text, owned Found done) {
             Found cb = (owned) done;
-            new Thread<bool> ("linked-search", () => {
+            Async.dispatch(this, Async.Qos.USER, (c) => {
                 var list = new Gee.ArrayList<LinkedCandidate> ();
                 string err = "";
                 var p = provider (kind);
@@ -588,11 +586,9 @@ namespace Singularity.Apps.Spreadsheet {
                         err = e.message;
                     }
                 }
-                Idle.add (() => {
+                return () => {
                     cb (list, err);
-                    return Source.REMOVE;
-                });
-                return true;
+                };
             });
         }
 
@@ -654,7 +650,7 @@ namespace Singularity.Apps.Spreadsheet {
                 if (LinkedHub.get ().async_mode) {
                     if (!book.analysis.loading.contains ("history:" + key)) {
                         book.analysis.loading.add ("history:" + key);
-                        new Thread<bool> ("linked-history", () => {
+                        Async.dispatch(null, Async.Qos.USER, (c) => {
                             Gee.List<Gee.List<string>>? got = null;
                             string err = "";
                             try {
@@ -662,15 +658,13 @@ namespace Singularity.Apps.Spreadsheet {
                             } catch (Error e) {
                                 err = e.message;
                             }
-                            Idle.add (() => {
+                            return () => {
                                 book.analysis.loading.remove ("history:" + key);
                                 if (got != null) book.analysis.histories[key] = got;
                                 else book.analysis.history_errors[key] = err;
                                 book.structure_changed = true;
                                 LinkedHub.get ().updated (book);
-                                return Source.REMOVE;
-                            });
-                            return true;
+                            };
                         });
                     }
                     return Value.err (ErrorKind.GETTING_DATA);

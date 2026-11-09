@@ -182,11 +182,11 @@ namespace SingularitySpreadsheetWidget {
         private void reload() {
             string path = pin.path;
             string cell = pin.cell;
-            new Thread<bool>("pinned-cell", () => {
+            Async.dispatch(this, Async.Qos.USER, (c) => {
                 string text;
                 bool ok = read_cell(path, cell, out text);
-                Idle.add(() => {
-                    if (!alive) return GLib.Source.REMOVE;
+                return () => {
+                    if (!alive) return;
                     value_lbl.label = text;
                     value_lbl.opacity = ok ? 1.0 : 0.6;
                     if (ok) {
@@ -196,9 +196,7 @@ namespace SingularitySpreadsheetWidget {
                         value_lbl.remove_css_class("title-1");
                         value_lbl.add_css_class("title-3");
                     }
-                    return GLib.Source.REMOVE;
-                });
-                return ok;
+                };
             });
         }
 
