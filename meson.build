@@ -116,6 +116,11 @@ libsingularity_dep = dependency('singularity-1.0',
   fallback: ['libsingularity', 'libsingularity_dep']
 )
 
+if not meson.is_subproject() and libsingularity_dep.type_name() == 'internal'
+  libsingularity_vapi_dir = join_paths(meson.project_build_root(), 'subprojects', 'libsingularity')
+  add_project_arguments(['--vapidir=' + libsingularity_vapi_dir], language: 'vala')
+endif
+
 engine_lib = static_library('spreadsheet-engine',
   engine + io,
   dependencies: [gee_dep, gio_dep, xml_dep, zlib_dep, math_dep, json_dep, soup_dep, sqlite_dep, gtk_dep, libsingularity_dep, dependency('pangocairo')],
@@ -135,11 +140,6 @@ io_test = executable('spreadsheet-io-test',
   vala_args: ['--pkg', 'zlib'],
 )
 test('io', io_test)
-
-if not meson.is_subproject() and libsingularity_dep.type_name() == 'internal'
-  libsingularity_vapi_dir = join_paths(meson.project_build_root(), 'subprojects', 'libsingularity')
-  add_project_arguments(['--vapidir=' + libsingularity_vapi_dir], language: 'vala')
-endif
 
 gnome = import('gnome')
 resources = gnome.compile_resources(
