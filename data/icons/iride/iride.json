@@ -1,0 +1,512 @@
+{
+ "format": 1,
+ "canvas": [
+  236,
+  236
+ ],
+ "box": [
+  0,
+  0,
+  236,
+  236
+ ],
+ "stack": [
+  {
+   "shadow": {
+    "dx": 0,
+    "dy": 5,
+    "blur": 6,
+    "color": "#1a3342",
+    "opacity": 0.4,
+    "region": [
+     -20,
+     -20,
+     276,
+     276
+    ]
+   },
+   "stack": [
+    {
+     "layer": "layers/000.svg",
+     "piece": "sheet"
+    },
+    {
+     "layer": "layers/001.svg",
+     "piece": "sheet"
+    }
+   ]
+  },
+  {
+   "clip": "M60 18H150L194 62V196Q194 214 176 214H60Q42 214 42 196V36Q42 18 60 18Z",
+   "stack": [
+    {
+     "layer": "layers/002.svg",
+     "piece": "sheet"
+    }
+   ]
+  },
+  {
+   "rim": "M60 18H150L194 62V196Q194 214 176 214H60Q42 214 42 196V36Q42 18 60 18Z",
+   "light": [
+    42.0,
+    18.0,
+    194.0,
+    214.0
+   ],
+   "piece": "sheet"
+  },
+  {
+   "shadow": {
+    "dx": 0,
+    "dy": 3,
+    "blur": 3,
+    "color": "#3d7a94",
+    "opacity": 0.35,
+    "region": [
+     -20,
+     -20,
+     276,
+     276
+    ]
+   },
+   "stack": [
+    {
+     "layer": "layers/004.svg",
+     "piece": "sheet"
+    }
+   ]
+  },
+  {
+   "layer": "layers/005.svg",
+   "piece": "line-1"
+  },
+  {
+   "layer": "layers/006.svg",
+   "piece": "line-1"
+  },
+  {
+   "layer": "layers/007.svg",
+   "piece": "line-1"
+  },
+  {
+   "layer": "layers/008.svg",
+   "piece": "line-2"
+  },
+  {
+   "layer": "layers/009.svg",
+   "piece": "line-2"
+  },
+  {
+   "layer": "layers/010.svg",
+   "piece": "line-2"
+  },
+  {
+   "layer": "layers/011.svg",
+   "piece": "line-3"
+  },
+  {
+   "layer": "layers/012.svg",
+   "piece": "line-3"
+  },
+  {
+   "layer": "layers/013.svg",
+   "piece": "line-4"
+  },
+  {
+   "layer": "layers/014.svg",
+   "piece": "line-4"
+  },
+  {
+   "layer": "layers/015.svg",
+   "piece": "line-5"
+  },
+  {
+   "layer": "layers/016.svg",
+   "piece": "line-5"
+  },
+  {
+   "layer": "layers/017.svg",
+   "piece": "bar-0"
+  },
+  {
+   "layer": "layers/018.svg",
+   "piece": "bar-1"
+  },
+  {
+   "layer": "layers/019.svg",
+   "piece": "bar-2"
+  }
+ ],
+ "motion": [
+  {
+   "piece": "sheet",
+   "origin": [
+    118.0,
+    118.0
+   ],
+   "tracks": [
+    {
+     "kind": "opacity",
+     "from": [
+      1
+     ],
+     "at": 760,
+     "duration": 75,
+     "ease": "linear"
+    }
+   ]
+  },
+  {
+   "piece": "line-1",
+   "origin": [
+    118.0,
+    81.0
+   ],
+   "tracks": [
+    {
+     "kind": "scale",
+     "from": [
+      0.88,
+      0.88
+     ],
+     "at": 0,
+     "duration": 60,
+     "ease": "out"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1.12,
+      1.12
+     ],
+     "at": 60,
+     "duration": 120,
+     "ease": "linear"
+    },
+    {
+     "kind": "opacity",
+     "from": [
+      1.5
+     ],
+     "at": 0,
+     "duration": 60,
+     "ease": "linear"
+    },
+    {
+     "kind": "opacity",
+     "from": [
+      0.5
+     ],
+     "at": 60,
+     "duration": 120,
+     "ease": "linear"
+    }
+   ]
+  },
+  {
+   "piece": "line-2",
+   "origin": [
+    118.0,
+    107.0
+   ],
+   "tracks": [
+    {
+     "kind": "scale",
+     "from": [
+      0.88,
+      0.88
+     ],
+     "at": 130,
+     "duration": 60,
+     "ease": "out"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1.12,
+      1.12
+     ],
+     "at": 190,
+     "duration": 120,
+     "ease": "linear"
+    },
+    {
+     "kind": "opacity",
+     "from": [
+      1.5
+     ],
+     "at": 130,
+     "duration": 60,
+     "ease": "linear"
+    },
+    {
+     "kind": "opacity",
+     "from": [
+      0.5
+     ],
+     "at": 190,
+     "duration": 120,
+     "ease": "linear"
+    }
+   ]
+  },
+  {
+   "piece": "line-3",
+   "origin": [
+    98.0,
+    130.0
+   ],
+   "tracks": [
+    {
+     "kind": "scale",
+     "from": [
+      0.88,
+      0.88
+     ],
+     "at": 260,
+     "duration": 60,
+     "ease": "out"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1.12,
+      1.12
+     ],
+     "at": 320,
+     "duration": 120,
+     "ease": "linear"
+    },
+    {
+     "kind": "opacity",
+     "from": [
+      1.5
+     ],
+     "at": 260,
+     "duration": 60,
+     "ease": "linear"
+    },
+    {
+     "kind": "opacity",
+     "from": [
+      0.5
+     ],
+     "at": 320,
+     "duration": 120,
+     "ease": "linear"
+    }
+   ]
+  },
+  {
+   "piece": "line-4",
+   "origin": [
+    98.0,
+    153.0
+   ],
+   "tracks": [
+    {
+     "kind": "scale",
+     "from": [
+      0.88,
+      0.88
+     ],
+     "at": 390,
+     "duration": 60,
+     "ease": "out"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1.12,
+      1.12
+     ],
+     "at": 450,
+     "duration": 120,
+     "ease": "linear"
+    },
+    {
+     "kind": "opacity",
+     "from": [
+      1.5
+     ],
+     "at": 390,
+     "duration": 60,
+     "ease": "linear"
+    },
+    {
+     "kind": "opacity",
+     "from": [
+      0.5
+     ],
+     "at": 450,
+     "duration": 120,
+     "ease": "linear"
+    }
+   ]
+  },
+  {
+   "piece": "line-5",
+   "origin": [
+    98.0,
+    176.0
+   ],
+   "tracks": [
+    {
+     "kind": "scale",
+     "from": [
+      0.88,
+      0.88
+     ],
+     "at": 520,
+     "duration": 60,
+     "ease": "out"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1.12,
+      1.12
+     ],
+     "at": 580,
+     "duration": 120,
+     "ease": "linear"
+    },
+    {
+     "kind": "opacity",
+     "from": [
+      1.5
+     ],
+     "at": 520,
+     "duration": 60,
+     "ease": "linear"
+    },
+    {
+     "kind": "opacity",
+     "from": [
+      0.5
+     ],
+     "at": 580,
+     "duration": 120,
+     "ease": "linear"
+    }
+   ]
+  },
+  {
+   "piece": "bar-0",
+   "origin": [
+    145.0,
+    185.0
+   ],
+   "tracks": [
+    {
+     "kind": "scale",
+     "from": [
+      1,
+      -0.5
+     ],
+     "at": 100,
+     "duration": 230,
+     "ease": "linear"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1,
+      2.5
+     ],
+     "at": 330,
+     "duration": 190,
+     "ease": "linear"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1,
+      0.3
+     ],
+     "at": 520,
+     "duration": 240,
+     "ease": "spring"
+    }
+   ]
+  },
+  {
+   "piece": "bar-1",
+   "origin": [
+    158.0,
+    185.0
+   ],
+   "tracks": [
+    {
+     "kind": "scale",
+     "from": [
+      1,
+      1.8
+     ],
+     "at": 100,
+     "duration": 230,
+     "ease": "linear"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1,
+      0.2
+     ],
+     "at": 330,
+     "duration": 190,
+     "ease": "linear"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1,
+      1.2
+     ],
+     "at": 520,
+     "duration": 240,
+     "ease": "spring"
+    }
+   ]
+  },
+  {
+   "piece": "bar-2",
+   "origin": [
+    171.0,
+    185.0
+   ],
+   "tracks": [
+    {
+     "kind": "scale",
+     "from": [
+      1,
+      0.6
+     ],
+     "at": 100,
+     "duration": 230,
+     "ease": "linear"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1,
+      1.4
+     ],
+     "at": 330,
+     "duration": 190,
+     "ease": "linear"
+    },
+    {
+     "kind": "scale",
+     "from": [
+      1,
+      0.5
+     ],
+     "at": 520,
+     "duration": 240,
+     "ease": "spring"
+    }
+   ]
+  }
+ ]
+}
