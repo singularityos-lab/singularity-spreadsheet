@@ -189,7 +189,7 @@ namespace Singularity.Apps.Spreadsheet {
         }
     }
 
-    public class SpreadsheetApp : Singularity.Application {
+    public class SpreadsheetApp : Singularity.Application, Singularity.Migration.Migratable {
 
         public SpreadsheetApp () {
             Object (application_id: "dev.sinty.spreadsheet", flags: ApplicationFlags.HANDLES_OPEN);
@@ -418,6 +418,54 @@ namespace Singularity.Apps.Spreadsheet {
             var w = get_active_window ();
             if (w == null) w = new SpreadsheetWindow (this);
             w.present ();
+        }
+
+        public void prepare_move () throws Singularity.Migration.MigrationError {
+            foreach (var w in get_windows ()) {
+                var sw = w as SpreadsheetWindow;
+                if (sw == null) continue;
+                try {
+                    sw.prepare_move ();
+                } catch (Error e) {
+                    throw new Singularity.Migration.MigrationError.FAILED (_("The unsaved spreadsheet could not be prepared for the move: %s").printf (e.message));
+                }
+            }
+        }
+
+        public Variant save_model () {
+            return new VariantDict ().end ();
+        }
+
+        public async void restore_model (Variant model) throws Error {
+        }
+
+        public string window_kind (Gtk.Window w) {
+            return (w is SpreadsheetWindow) ? "spreadsheet" : "";
+        }
+
+        public Variant save_window (Gtk.Window w) {
+            return ((SpreadsheetWindow) w).save_migration ();
+        }
+
+        public string[] files () {
+            string[] found = {};
+            foreach (var w in get_windows ()) {
+                var sw = w as SpreadsheetWindow;
+                if (sw == null) continue;
+                foreach (string f in sw.migration_files ()) if (!(f in found)) found += f;
+            }
+            return found;
+        }
+
+        public async Gtk.Window? rebuild_window (string kind, Variant data) throws Error {
+            if (kind != "spreadsheet") return null;
+            foreach (var old in get_windows ().copy ()) {
+                var sw = old as SpreadsheetWindow;
+                if (sw != null && sw.is_empty ()) sw.destroy ();
+            }
+            var w = new SpreadsheetWindow (this);
+            w.restore_migration (data);
+            return w;
         }
 
         public override void open (File[] files, string hint) {

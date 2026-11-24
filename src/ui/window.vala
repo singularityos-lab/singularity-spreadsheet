@@ -793,6 +793,88 @@ namespace Singularity.Apps.Spreadsheet {
             popup_menu (menu);
         }
 
+        private string? moving_copy = null;
+
+        public void prepare_move () throws Error {
+            if (doc == null || (!doc.modified && (doc.path != null || is_empty ()))) {
+                moving_copy = null;
+                return;
+            }
+            if (moving_copy == null) {
+                string kind = doc.path != null && FileKind.from_path (doc.path) == FileKind.ODS ? "ods" : "xlsx";
+                moving_copy = Path.build_filename (Environment.get_user_data_dir (), "singularity-spreadsheet", "moving", "%s.%s".printf (Uuid.string_random (), kind));
+            }
+            DirUtils.create_with_parents (Path.get_dirname (moving_copy), 0700);
+            string? path = doc.path;
+            string? password = doc.encrypt_password;
+            bool modified = doc.modified;
+            doc.encrypt_password = null;
+            try {
+                doc.save_to (moving_copy, grid.sheet);
+            } finally {
+                doc.encrypt_password = password;
+                doc.path = path;
+                doc.modified = modified;
+            }
+        }
+
+        public string[] migration_files () {
+            string[] found = {};
+            if (doc == null) return found;
+            if (doc.path != null) found += Singularity.Migration.portable_path (File.new_for_path (doc.path));
+            if (moving_copy != null) found += Singularity.Migration.portable_path (File.new_for_path (moving_copy));
+            return found;
+        }
+
+        public Variant save_migration () {
+            var d = new VariantDict ();
+            if (doc == null) return d.end ();
+            d.insert_value ("path", new Variant.string (doc.path != null ? Singularity.Migration.portable_path (File.new_for_path (doc.path)) : ""));
+            d.insert_value ("copy", new Variant.string (moving_copy != null ? Singularity.Migration.portable_path (File.new_for_path (moving_copy)) : ""));
+            d.insert_value ("modified", new Variant.boolean (doc.modified));
+            d.insert_value ("sheet", new Variant.int32 (doc.book.sheets.index_of (grid.sheet)));
+            var area = grid.selection;
+            int anchor_row = grid.cur_row == area.r2 ? area.r1 : area.r2;
+            int anchor_col = grid.cur_col == area.c2 ? area.c1 : area.c2;
+            d.insert_value ("selection", new Variant ("(iiii)", anchor_row, anchor_col, grid.cur_row, grid.cur_col));
+            d.insert_value ("zoom", new Variant.double (grid.zoom));
+            return d.end ();
+        }
+
+        public void restore_migration (Variant data) throws Error {
+            var d = new VariantDict (data);
+            var path = d.lookup_value ("path", VariantType.STRING);
+            if (path == null) return;
+            string copy = (d.lookup_value ("copy", VariantType.STRING) ?? new Variant.string ("")).get_string ();
+            string source = copy != "" ? copy : path.get_string ();
+            Document opened;
+            if (source == "") {
+                opened = new Document ();
+            } else {
+                opened = Document.open (Singularity.Migration.local_file (source).get_path ());
+                if (copy != "") {
+                    opened.path = path.get_string () != "" ? Singularity.Migration.local_file (path.get_string ()).get_path () : null;
+                    opened.modified = (d.lookup_value ("modified", VariantType.BOOLEAN) ?? new Variant.boolean (true)).get_boolean ();
+                    moving_copy = Singularity.Migration.local_file (copy).get_path ();
+                }
+            }
+            load_document (opened);
+            var sheet = d.lookup_value ("sheet", VariantType.INT32);
+            if (sheet != null && sheet.get_int32 () >= 0 && sheet.get_int32 () < doc.book.sheets.size && doc.book.sheets[sheet.get_int32 ()] != grid.sheet) {
+                grid.show_sheet (doc.book.sheets[sheet.get_int32 ()]);
+                rebuild_tabs ();
+            }
+            var zoom = d.lookup_value ("zoom", VariantType.DOUBLE);
+            if (zoom != null) grid.zoom_to (zoom.get_double ());
+            var selection = d.lookup_value ("selection", new VariantType ("(iiii)"));
+            if (selection != null) {
+                int ar, ac, cr, cc;
+                selection.get ("(iiii)", out ar, out ac, out cr, out cc);
+                grid.select_cell (ar, ac, false);
+                grid.select_cell (cr, cc, true);
+            }
+        }
+
         public void go_to (Sheet s, int r, int c) {
             if (grid == null || !doc.book.sheets.contains (s)) return;
             if (grid.sheet != s) {
