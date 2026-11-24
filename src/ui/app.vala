@@ -189,7 +189,7 @@ namespace Singularity.Apps.Spreadsheet {
         }
     }
 
-    public class SpreadsheetApp : Singularity.Application, Singularity.Migration.Migratable {
+    public class SpreadsheetApp : Singularity.Application, Singularity.Migration.Migratable, Singularity.Startup.Bootable {
 
         public SpreadsheetApp () {
             Object (application_id: "dev.sinty.spreadsheet", flags: ApplicationFlags.HANDLES_OPEN);
@@ -414,7 +414,32 @@ namespace Singularity.Apps.Spreadsheet {
             set_menubar (menu);
         }
 
-        public override void activate () {
+        public Singularity.Startup.Plan build_plan (Singularity.Startup.Request request) {
+            var plan = new Singularity.Startup.Plan ();
+            plan.version = "spreadsheet-1";
+            if (request.kind == Singularity.Startup.RequestKind.SERVICE) {
+                plan.main ("ready", Singularity.Startup.Category.PREPARE, (c) => {})
+                    .reaches (Singularity.Startup.Milestone.SHELL_READY)
+                    .reaches (Singularity.Startup.Milestone.CONTENT_READY)
+                    .reaches (Singularity.Startup.Milestone.INTERACTIVE);
+                return plan;
+            }
+            plan.main ("window", Singularity.Startup.Category.SHELL, (c) => {
+                if (request.kind == Singularity.Startup.RequestKind.OPEN) open_files (request.files ());
+                else show_window ();
+                c.window = get_active_window ();
+            }).reaches (Singularity.Startup.Milestone.SHELL_READY)
+              .reaches (Singularity.Startup.Milestone.CONTENT_READY)
+              .reaches (Singularity.Startup.Milestone.INTERACTIVE);
+            return plan;
+        }
+
+        public void handle_request (Singularity.Startup.Request request) {
+            if (request.kind == Singularity.Startup.RequestKind.OPEN) open_files (request.files ());
+            else show_window ();
+        }
+
+        private void show_window () {
             var w = get_active_window ();
             if (w == null) w = new SpreadsheetWindow (this);
             w.present ();
@@ -468,7 +493,7 @@ namespace Singularity.Apps.Spreadsheet {
             return w;
         }
 
-        public override void open (File[] files, string hint) {
+        private void open_files (File[] files) {
             foreach (var f in files) open_file (f, null);
         }
 
